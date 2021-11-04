@@ -64,13 +64,17 @@ class SignalInstruction(TraceInstruction):
 
 
 class SleepInstruction(TraceInstruction):
-    def __init__(self, s):
+    def __init__(self, s, quick):
         self.s = s
+        self.quick = quick 
 
     def run(self, shell_proc):
 	# to speed things up, sleep for just a quarter of the time requested
         stime = self.s*0.25
-        time.sleep(stime)
+        if self.quick:
+            time.sleep(stime)
+        else:
+            time.sleep(self.s)
 
     def __str__(self):
         return f"<Sleep {self.s}>"
@@ -126,7 +130,7 @@ def parse_trace_file(path: str, args) -> Tuple[List[TraceInstruction], bool]:
 
             slp = re.findall("SLEEP (\d+)", line)
             if len(slp) > 0:
-                instructions.append(SleepInstruction(int(slp[0])))
+                instructions.append(SleepInstruction(int(slp[0]), args.quick))
             elif line == "INT":
                 instructions.append(SignalInstruction(signal.SIGINT))
             elif line == "TSTP":

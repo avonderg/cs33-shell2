@@ -5,6 +5,9 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
+#include <signal.h>
+#include <errno.h>
 
 // function declarations
 void parse_helper(char buffer[1024], char *tokens[512], char *argv[512],
@@ -27,7 +30,11 @@ int set_path(char *tokens[512], char **path);
  *  - 0 if EOF is reached, 1 if there is an error
  **/
 int main() {
-    // repl (read eval print loop)
+    // ignoring specified signals
+    signal(SIGINT, SIG_IGN);
+    signal(SIGTSTP, SIG_IGN);
+    signal(SIGTTOU, SIG_IGN);
+    // repl
     while (1) {
 #ifdef PROMPT
         if (printf("33sh> ") < 0) {
@@ -41,6 +48,7 @@ int main() {
 #endif
 
         // initializing
+        pid_t pgid = getpid(); // gets parent's process group ID
         char buf[1024];
         memset(buf, '\0', 1024);  // 512 * size of char pointer
         int fd = STDIN_FILENO;
@@ -84,6 +92,18 @@ int main() {
         if (built_ins == 0) {
             pid_t pid;
             if ((pid = fork()) == 0) {  // enters child process
+                pid_t pid = getpid(); // gets child's process ID
+                if (setpgid(pid, pgid) == -1) {
+                    perror("setpgid");
+                }
+                pid_t pgrp = getpgrp();
+                if (tcsetpgrp(STDIN_FILENO, pid) == -1) {
+                    perror("tcsetpgrp");
+                }
+                // signal handling in child process
+                signal(SIGINT, SIG_DFL);
+                signal(SIGTSTP, SIG_DFL);
+                signal(SIGTTOU, SIG_DFL);
                 int redirects =
                     file_redirect(&input_file, &output_file, output_flags);
                 if (redirects == -1) {  // if an error has occured
