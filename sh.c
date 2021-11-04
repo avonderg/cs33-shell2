@@ -92,12 +92,11 @@ int main() {
         if (built_ins == 0) {
             pid_t pid;
             if ((pid = fork()) == 0) {  // enters child process
-                pid_t pid = getpid(); // gets child's process ID
                 if (setpgid(pid, pgid) == -1) {
                     perror("setpgid");
                 }
                 pid_t pgrp = getpgrp();
-                if (tcsetpgrp(STDIN_FILENO, pid) == -1) {
+                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) {
                     perror("tcsetpgrp");
                 }
                 // signal handling in child process
