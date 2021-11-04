@@ -436,6 +436,6 @@ int file_redirect(const char **input_file, const char **output_file,
 // write descr
 void add_jobs(pid_t pid, job_list_t *job_list, char **path) {
     // make a global var called jobcount- that is the job, increment it
-    add_job(job_list, jobcount, pid, RUNNING, path); // what is the process state
+    add_job(job_list, jobcount, pid, RUNNING, *path); // what is the process state
     jobcount++; // increment job it
 }
