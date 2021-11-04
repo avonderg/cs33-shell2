@@ -48,7 +48,6 @@ int main() {
 #endif
 
         // initializing
-        pid_t pgid = getpid(); // gets parent's process group ID
         char buf[1024];
         memset(buf, '\0', 1024);  // 512 * size of char pointer
         int fd = STDIN_FILENO;
@@ -92,7 +91,7 @@ int main() {
         if (built_ins == 0) {
             pid_t pid;
             if ((pid = fork()) == 0) {  // enters child process
-                if (setpgid(pid, pgid) == -1) {
+                if (setpgid(pid, pid) == -1) {
                     perror("setpgid");
                 }
                 pid_t pgrp = getpgrp();
