@@ -8,6 +8,7 @@
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
+#include "jobs.h"
 
 // function declarations
 void parse_helper(char buffer[1024], char *tokens[512], char *argv[512],
@@ -22,7 +23,9 @@ int rm(char *file);
 int file_redirect(const char **input_file, const char **output_file,
                   int *output_flags);
 int set_path(char *tokens[512], char **path);
-
+int amp_checked = 0;
+job_list_t *list = NULL;
+int jobcount = 1;
 /**
  * Main function
  *
@@ -34,6 +37,7 @@ int main() {
     signal(SIGINT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);
+    list = init_job_list(); // init joblist
     // repl
     while (1) {
 #ifdef PROMPT
@@ -95,8 +99,13 @@ int main() {
                     perror("setpgid");
                 }
                 pid_t pgrp = getpgrp();
-                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) {
+                if (pgrp == -1) {
+                    perror("getpgrp");
+                }
+                if (amp_checked == 0) {
+                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
                     perror("tcsetpgrp");
+                }
                 }
                 // signal handling in child process
                 signal(SIGINT, SIG_DFL);
@@ -112,10 +121,22 @@ int main() {
                     perror("execv");
                 }
                 perror("child process could not do execv");
-            } else if (pid > 0) {  // enters wait mode
-                wait(NULL);
+            } else if (pid > 0) {  // in the parent process
+                if (amp_checked == 1) { // if there was an ampersand, this means it is background
+                    // add to job in parent process bc we don't hav access to pid unless in parent
+                    add_jobs(pid, list, path);
+                    // make a local variable, not a global variable >> wanna run mult commands,
+                    // can get messed
+                }
+                else {
+                    waitpid(pid,0,0); // this is in parent process, wait until foreground done
+                    // switch to waitpid() bc it gives us access to status var that has info
+                    // check if it was suspended using that
+                    // call helper again
+                }
             } else {  // if an error has ocurred
                 perror("error calling function fork()");
+                cleanup_job_list(list);
                 exit(0);
             }
         }
@@ -260,7 +281,12 @@ int parse(char buffer[1024], char *tokens[512], char *argv[512],
             // after error checking is complete
             *output_file = tokens[i + 1];
             i += 2;
-        } else {  // otherwise, then add in element to argv
+        }
+        else if (strcmp(tokens[i], "&") == 0) { // if the elt is an ampersand
+            // what do we do here then?
+            amp_checked = 1;
+        }
+        else {  // otherwise, then add in element to argv
             argv[k] = w_sym[i];
             k++;
             i++;
@@ -341,6 +367,7 @@ int built_in(char *argv[512], char **path) {
         }
         return 1;
     } else if (strcmp(*path, "exit") == 0) {  // if the command is exit
+        cleanup_job_list(list);
         exit(0);
     }
     return 0;
@@ -403,4 +430,11 @@ int file_redirect(const char **input_file, const char **output_file,
         }
     }
     return 0;
+}
+
+// write descr
+void add_jobs(pid_t pid, job_list_t *job_list, char **path) {
+    // make a global var called jobcount- that is the job, increment it
+    add_job(job_list, jobcount, pid, RUNNING, path); // what is the process state
+    jobcount++; // increment job it
 }
