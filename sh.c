@@ -23,6 +23,7 @@ int rm(char *file);
 int file_redirect(const char **input_file, const char **output_file,
                   int *output_flags);
 int set_path(char *tokens[512], char **path);
+void add_jobs(pid_t pid, job_list_t *job_list, char **path);
 int amp_checked = 0;
 job_list_t *list = NULL;
 int jobcount = 1;
@@ -124,7 +125,7 @@ int main() {
             } else if (pid > 0) {  // in the parent process
                 if (amp_checked == 1) { // if there was an ampersand, this means it is background
                     // add to job in parent process bc we don't hav access to pid unless in parent
-                    add_jobs(pid, list, path);
+                    add_jobs(pid, list, &path);
                     // make a local variable, not a global variable >> wanna run mult commands,
                     // can get messed
                 }
