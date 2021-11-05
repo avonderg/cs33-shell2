@@ -134,13 +134,13 @@ int main() {
                     // add to job in parent process bc we don't hav access to pid unless in parent
                     add_jobs(pid, list, &path);
                     int job_pid = get_job_pid(list, jobcount);
-                    fprintf("[%d] (%d)", jobcount, job_pid);
+                    printf("[%d] (%d)", jobcount, job_pid);
                      // reset variable
                     // make a local variable, not a global variable >> wanna run mult commands,
                     // can get messed
                 }
                 else { // if it is a foregound job
-                    int *status;
+                    int *status = NULL;
                     if (waitpid(pid, status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
                     // then add to jobs list
                         perror("waitpid");
@@ -148,7 +148,7 @@ int main() {
                     if (WIFEXITED(status) == 0) { // if foreground job suspended early
                         add_jobs(pid, list, &path);
                         int job_pid = get_job_pid(list, jobcount);
-                        fprintf("[%d] (%d)", jobcount, job_pid);
+                        printf("[%d] (%d)", jobcount, job_pid);
                     }
                     // this is in parent process, wait until foreground done
                     // switch to waitpid() bc it gives us access to status var that has info
