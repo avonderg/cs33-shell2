@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <errno.h>
 #include "jobs.h"
+#include <sys/types.h>
 
 // function declarations
 void parse_helper(char buffer[1024], char *tokens[512], char *argv[512],
@@ -84,6 +85,7 @@ int main() {
                                    // if flag = O_TRUNC
         int val;
         output_flags = &val;
+        amp_checked = 0;
         int parse_result = parse(buf, tokens, argv, w_sym, &input_file,
                                  &output_file, output_flags, &path);
         if (argv[0] == NULL) {
@@ -103,10 +105,15 @@ int main() {
                 if (pgrp == -1) {
                     perror("getpgrp");
                 }
-                if (amp_checked == 0) {
+                if (amp_checked == 0) { // if it is a foreground process
                 if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
                     perror("tcsetpgrp");
                 }
+                // // create an int that's the status
+                // int *status; // is set by waitpid based on why process stopped
+                // waitpid(pid, status, WUNTRACED); // this is where you wait 
+                // // check here for the status
+                // // 
                 }
                 // signal handling in child process
                 signal(SIGINT, SIG_DFL);
@@ -126,11 +133,24 @@ int main() {
                 if (amp_checked == 1) { // if there was an ampersand, this means it is background
                     // add to job in parent process bc we don't hav access to pid unless in parent
                     add_jobs(pid, list, &path);
+                    int job_pid = get_job_pid(list, jobcount);
+                    fprintf("[%d] (%d)", jobcount, job_pid);
+                     // reset variable
                     // make a local variable, not a global variable >> wanna run mult commands,
                     // can get messed
                 }
-                else {
-                    waitpid(pid,0,0); // this is in parent process, wait until foreground done
+                else { // if it is a foregound job
+                    int *status;
+                    if (waitpid(pid, status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
+                    // then add to jobs list
+                        perror("waitpid");
+                    }
+                    if (WIFEXITED(status) == 0) { // if foreground job suspended early
+                        add_jobs(pid, list, &path);
+                        int job_pid = get_job_pid(list, jobcount);
+                        fprintf("[%d] (%d)", jobcount, job_pid);
+                    }
+                    // this is in parent process, wait until foreground done
                     // switch to waitpid() bc it gives us access to status var that has info
                     // check if it was suspended using that
                     // call helper again
@@ -435,7 +455,6 @@ int file_redirect(const char **input_file, const char **output_file,
 
 // write descr
 void add_jobs(pid_t pid, job_list_t *job_list, char **path) {
-    // make a global var called jobcount- that is the job, increment it
-    add_job(job_list, jobcount, pid, RUNNING, *path); // what is the process state
-    jobcount++; // increment job it
+    add_job(job_list, jobcount, pid, RUNNING, *path); // add current job to job list
+    jobcount++; // increment job ID
 }
