@@ -494,21 +494,21 @@ void reap_helper(job_list_t *job_list, int status, int job_pid) {
     if (WIFSTOPPED(status) == 1) { // if it is true
         update_job_jid(job_list, jobcount, STOPPED);
         int signal = WSTOPSIG(status);
-        printf("[%d] (%d) suspended by signal %d", jobcount, job_pid, signal);            
+        printf("[%d] (%d) suspended by signal %d\n", jobcount, job_pid, signal);            
         }
     else if (WIFCONTINUED(status) == 1) { // if it is true
         update_job_jid(job_list, jobcount, RUNNING); // resumed
-        printf("[%d] (%d) resumed", jobcount, job_pid);
+        printf("[%d] (%d) resumed\n", jobcount, job_pid);
         }
     else if (WIFSIGNALED(status) != 0) { // if it is terminated
         remove_job_jid(job_list, jobcount);
         int signal = WTERMSIG(status);
-        printf("[%d] (%d) terminated by signal %d", jobcount, job_pid, signal);
+        printf("[%d] (%d) terminated by signal %d\n", jobcount, job_pid, signal);
         }
-    else if (WIFEXITED(status) != 0) { 
+    else if (WIFEXITED(status) == 0) { 
         remove_job_jid(job_list, jobcount);
         int signal = WEXITSTATUS(status);
-        printf("[%d] (%d) terminated with exit status %d", jobcount, job_pid, signal);
+        printf("[%d] (%d) terminated with exit status %d\n", jobcount, job_pid, signal);
         }
 }
 
