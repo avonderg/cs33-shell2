@@ -46,7 +46,7 @@ int main() {
     while (1) {
         int status;
         int job_pid = get_job_pid(list, jobcount);
-        if (waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG) == -1) {
+        if (waitpid(job_pid, &status, WUNTRACED | WCONTINUED | WNOHANG) == -1) {
         perror("waitpid");
         }
         reap_helper(list,status,job_pid);
