@@ -422,10 +422,10 @@ int built_in(char *argv[512], char **path) {
        // parse to get the jid (follows the command
        // difference is in the jid u sent to foreground
        // tcset
-       fg_helper(argv, &path);
+       fg_helper(argv, path);
     }
     else if (strcmp(*path, "bg") == 0) {  // if the command is bg
-      bg_helper(argv, &path);
+      bg_helper(argv, path);
     }
     return 0;
 }
