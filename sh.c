@@ -537,7 +537,6 @@ void fg_helper(char *argv[512]) {
         perror("tcsetpgrp");
     }
     int status;
-    int job_pid = get_job_pid(list, jobcount);
     if (waitpid(fg_pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
         perror("waitpid");
     }
