@@ -525,26 +525,29 @@ void reap_helper() {
     }
 }
 void fg_helper(char *argv[512]) {
-    int jid = *argv[2];
+    int jid = argv[1][1];
     int fg_pid = get_job_pid(list, jid);
     pid_t pgrp = getpgrp();
     if (pgrp == -1) {
         perror("getpgrp");
-        }
-    if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
+    }
+    if (tcsetpgrp(STDIN_FILENO, fg_pid) == -1) { // gives up terminal control
         perror("tcsetpgrp");
     }
     int status;
+    // make sure process is running
+    // negative pid
+    // fg_pid = process group, negative to send it to all
+    kill(-fg_pid, SIGCONT);
     if (waitpid(fg_pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
         perror("waitpid");
     }
-    kill(fg_pid, SIGCONT);
     if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // sends back to shell?
         perror("tcsetpgrp");
     }
 }
 void bg_helper(char *argv[512]) {
-    int jid = *argv[2];
+    int jid = argv[1][1];
     int bg_pid = get_job_pid(list, jid);
-    kill(bg_pid, SIGCONT);
+    kill(-bg_pid, SIGCONT);
 }
