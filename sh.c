@@ -112,11 +112,6 @@ int main() {
                 if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
                     perror("tcsetpgrp");
                 }
-                // // create an int that's the status
-                // int *status; // is set by waitpid based on why process stopped
-                // waitpid(pid, status, WUNTRACED); // this is where you wait 
-                // // check here for the status
-                // // 
                 }
                 // signal handling in child process
                 signal(SIGINT, SIG_DFL);
