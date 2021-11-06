@@ -143,7 +143,6 @@ int main() {
                 }
                 else { // if it is a foregound job
                     int status;
-                    int job_pid = get_job_pid(list, jobcount);
                     if (waitpid(pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
                         perror("waitpid");
                     }
@@ -423,10 +422,10 @@ int built_in(char *argv[512], char **path) {
        // parse to get the jid (follows the command
        // difference is in the jid u sent to foreground
        // tcset
-       fg_helper(argv, *path);
+       fg_helper(argv, &path);
     }
     else if (strcmp(*path, "bg") == 0) {  // if the command is bg
-      bg_helper(argv, *path);
+      bg_helper(argv, &path);
     }
     return 0;
 }
