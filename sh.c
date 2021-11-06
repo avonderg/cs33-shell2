@@ -104,12 +104,12 @@ int main() {
                 if (setpgid(pid, pid) == -1) {
                     perror("setpgid");
                 }
-                pid_t pgrp = getpgrp();
-                if (pgrp == -1) {
-                    perror("getpgrp");
-                }
+                // pid_t pgrp = getpgrp();
+                // if (pgrp == -1) {
+                //     perror("getpgrp");
+                // }
                 if (amp_checked == 0) { // if it is a foreground process
-                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
+                if (tcsetpgrp(STDIN_FILENO, pid) == -1) { // gives up terminal control
                     perror("tcsetpgrp");
                 }
                 // // create an int that's the status
@@ -148,7 +148,7 @@ int main() {
                     if (WIFEXITED(status) == 0) { // if foreground job ended normally
                         int signal = WEXITSTATUS(status);
                         int jid = get_job_jid(list, pid);
-                        printf("[%d] (%d) suspended by signal %d", jid, pid, signal);
+                        printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
                     }
                     // either terminated or stopped
                     else if (WIFSTOPPED(status) == 1) { // if it suspended early!!
@@ -157,14 +157,14 @@ int main() {
                         int jid = get_job_jid(list, pid);
                         update_job_jid(list, jid, STOPPED);
                         int signal = WSTOPSIG(status);
-                        printf("[%d] (%d) suspended by signal %d", jid, pid, signal);
+                        printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
                     }
                     else if (WIFSIGNALED(status) != 0) { // if it is terminated w signal
                         // add to joblist and then remove it
                         int signal = WTERMSIG(status);
                         add_jobs(pid,list, &path);
                         int jid = get_job_jid(list, pid);
-                        printf("[%d] (%d) terminated by signal %d", jid, pid, signal);
+                        printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
                         remove_job_jid(list, jid);
                     }
                     // terminal still thinks process is a process
