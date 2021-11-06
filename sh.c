@@ -56,7 +56,6 @@ int main() {
             return 1;
         }
 #endif
-
         // initializing
         char buf[1024];
         memset(buf, '\0', 1024);  // 512 * size of char pointer
@@ -525,7 +524,6 @@ void reap_helper() {
         }
     }
 }
-
 void fg_helper(char *argv[512]) {
     int jid = *argv[2];
     int fg_pid = get_job_pid(list, jid);
