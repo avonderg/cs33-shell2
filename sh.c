@@ -104,12 +104,12 @@ int main() {
                 if (setpgid(pid, pid) == -1) {
                     perror("setpgid");
                 }
-                // pid_t pgrp = getpgrp();
-                // if (pgrp == -1) {
-                //     perror("getpgrp");
-                // }
+                pid_t pgrp = getpgrp();
+                if (pgrp == -1) {
+                    perror("getpgrp");
+                }
                 if (amp_checked == 0) { // if it is a foreground process
-                if (tcsetpgrp(STDIN_FILENO, pid) == -1) { // gives up terminal control
+                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
                     perror("tcsetpgrp");
                 }
                 // // create an int that's the status
