@@ -26,7 +26,8 @@ int file_redirect(const char **input_file, const char **output_file,
 int set_path(char *tokens[512], char **path);
 void add_jobs(pid_t pid, job_list_t *job_list, char **path);
 void reap_helper();
-void job_com(pid_t pid, char** path);
+void bg_helper(char *argv[512], char **path);
+void fg_helper(char *argv[512], char **path);
 int amp_checked = 0;
 job_list_t *list = NULL;
 int jobcount = 1;
@@ -527,7 +528,7 @@ void reap_helper() {
 }
 
 void fg_helper(char *argv[512], char **path) {
-    int jid = argv[2];
+    int jid = *argv[2];
     int fg_pid = get_job_pid(list, jid);
     pid_t pgrp = getpgrp();
     if (pgrp == -1) {
@@ -547,19 +548,7 @@ void fg_helper(char *argv[512], char **path) {
     }
 }
 void bg_helper(char *argv[512], char **path) {
-    int jid = argv[2];
+    int jid = *argv[2];
     int bg_pid = get_job_pid(list, jid);
     kill(bg_pid, SIGCONT);
-}
-
-void job_com(pid_t pid, char** path) {
-    if (strcmp(*path, "fg") == 0) {
-        // tcset
-        // wait
-        // set back to the shell
-        kill(pid, SIGCONT);
-    }
-    else if (strcmp(*path, "bg") == 0) {
-        kill(pid, SIGCONT);
-    }
 }
