@@ -127,7 +127,8 @@ int main() {
                     perror("execv");
                 }
                 perror("child process could not do execv");
-            }   // in the parent process
+                exit(1);
+                }   // in the parent process
                 if (amp_checked == 1) { // if there was an ampersand, this means it is background
                     // add to job in parent process bc we don't hav access to pid unless in parent
                     add_jobs(pid, list, &path);
@@ -140,13 +141,20 @@ int main() {
                     if (waitpid(pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
                         perror("waitpid");
                     }
+                    pid_t pgrp = getpgrp();
+                    if (pgrp == -1) {
+                        perror("getpgrp");
+                    }
+                    if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
+                        perror("tcsetpgrp");
+                    }
                     // if (WIFEXITED(status) == 0) { // if foreground job ended normally
                     //     int signal = WEXITSTATUS(status);
                     //     int jid = get_job_jid(list, pid);
                     //     printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
                     // }
                     // either terminated or stopped
-                    if (WIFSTOPPED(status) == 1) { // if it suspended early!!
+                    if (WIFSTOPPED(status)) { // if it suspended early!!
                         // add to joblist and leave it
                         add_jobs(pid,list, &path);
                         int jid = get_job_jid(list, pid);
@@ -154,7 +162,7 @@ int main() {
                         int signal = WSTOPSIG(status);
                         printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
                     }
-                    else if (WIFSIGNALED(status) != 0) { // if it is terminated w signal
+                    else if (WIFSIGNALED(status)) { // if it is terminated w signal
                         // add to joblist and then remove it
                         int signal = WTERMSIG(status);
                         add_jobs(pid,list, &path);
@@ -163,13 +171,13 @@ int main() {
                         remove_job_jid(list, jid);
                     }
                     // terminal still thinks process is a process
-                    pid_t pgrp = getpgrp();
-                    if (pgrp == -1) {
-                        perror("getpgrp");
-                    }
-                    if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
-                        perror("tcsetpgrp");
-                    }
+                    // pid_t pgrp = getpgrp();
+                    // if (pgrp == -1) {
+                    //     perror("getpgrp");
+                    // }
+                    // if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
+                    //     perror("tcsetpgrp");
+                    // }
                     // DO YOU REMOVE FOREGROUND JOB IF IT IS RESUMED AFTER BEING SUSPENDED
                     // this is in parent process, wait until foreground done
                     // switch to waitpid() bc it gives us access to status var that has info
