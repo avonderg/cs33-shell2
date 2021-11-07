@@ -156,6 +156,7 @@ int main() {
                     if (WIFSTOPPED(status)) { // if it suspended early!!
                         // add to joblist and leave it
                         add_jobs(pid,list, &path);
+                        jobcount++;
                         int jid = get_job_jid(list, pid);
                         update_job_jid(list, jid, STOPPED);
                         int signal = WSTOPSIG(status);
@@ -165,6 +166,7 @@ int main() {
                         // add to joblist and then remove it
                         int signal = WTERMSIG(status);
                         add_jobs(pid,list, &path);
+                        jobcount++;
                         int jid = get_job_jid(list, pid);
                         printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
                         remove_job_jid(list, jid);
