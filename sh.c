@@ -87,7 +87,6 @@ int main() {
                                    // if flag = O_TRUNC
         int val;
         output_flags = &val;
-        amp_checked = 0;
         int parse_result = parse(buf, tokens, argv, w_sym, &input_file,
                                  &output_file, output_flags, &path);
         if (argv[0] == NULL) {
@@ -189,6 +188,7 @@ int main() {
             //     exit(0);
             // }
         }
+    amp_checked = 0;
     reap_helper();
     }
     return 0;
@@ -417,7 +417,7 @@ int built_in(char *argv[512], char **path) {
         }
         return 1;
     } else if (strcmp(*path, "exit") == 0) {  // if the command is exit
-        cleanup_job_list(list);
+        // cleanup_job_list(list);
         exit(0);
     }
     else if (strcmp(*path, "fg") == 0) {  // if the command is fg
@@ -542,6 +542,7 @@ void fg_helper(char *argv[512]) {
     // negative pid
     // fg_pid = process group, negative to send it to all
     kill(-fg_pid, SIGCONT);
+    // error check
     if (waitpid(fg_pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
         perror("waitpid");
     }
