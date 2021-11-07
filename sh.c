@@ -27,7 +27,7 @@ int set_path(char *tokens[512], char **path);
 void add_jobs(pid_t pid, job_list_t *job_list, char **path);
 void reap_helper();
 void bg_helper(char *argv[512]);
-void fg_helper(char *argv[512]);
+void fg_helper(char *argv[512],  char **path);
 int amp_checked = 0;
 job_list_t *list = NULL;
 int jobcount = 1;
@@ -192,7 +192,6 @@ int main() {
             // }
         }
     amp_checked = 0;
-    // reap_helper();
     }
     return 0;
 }
@@ -428,7 +427,7 @@ int built_in(char *argv[512], char **path) {
        // parse to get the jid (follows the command
        // difference is in the jid u sent to foreground
        // tcset
-       fg_helper(argv);
+       fg_helper(argv, path);
        return 1;
     }
     else if (strcmp(*path, "bg") == 0) {  // if the command is bg
@@ -537,7 +536,7 @@ void reap_helper() {
         }
     }
 }
-void fg_helper(char *argv[512]) {
+void fg_helper(char *argv[512], char **path) {
     int jid = atoi(&argv[1][1]);
     int fg_pid = get_job_pid(list, jid);
     pid_t pgrp = getpgrp();
@@ -553,9 +552,24 @@ void fg_helper(char *argv[512]) {
     // negative pid
     // fg_pid = process group, negative to send it to all
     kill(-fg_pid, SIGCONT);
-    // error check
     if (waitpid(fg_pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
         perror("waitpid");
+    }
+    if (WIFSTOPPED(status)) { // if it suspended early!!
+        add_jobs(fg_pid,list, &path);
+        jobcount++;
+        int jid = get_job_jid(list, fg_pid);
+        update_job_jid(list, jid, STOPPED);
+        int signal = WSTOPSIG(status);
+        printf("[%d] (%d) suspended by signal %d\n", jid, fg_pid, signal);
+    }
+    else if (WIFSIGNALED(status)) { // if it is terminated w signal
+        int signal = WTERMSIG(status);
+        add_jobs(fg_pid,list, &path);
+        jobcount++;
+        int jid = get_job_jid(list, fg_pid);
+        printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
+        remove_job_jid(list, jid);
     }
     update_job_jid(list, jid, RUNNING);
     if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // sends back to shell?
