@@ -45,7 +45,6 @@ int main() {
     list = init_job_list(); // init joblist
     // repl
     while (1) {
-        reap_helper();
 #ifdef PROMPT
         if (printf("33sh> ") < 0) {
             fprintf(stderr, "error: unable to write");
@@ -190,7 +189,7 @@ int main() {
             // }
         }
     amp_checked = 0;
-    // reap_helper();
+    reap_helper();
     }
     return 0;
 }
