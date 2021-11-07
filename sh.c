@@ -548,6 +548,7 @@ void fg_helper(char *argv[512]) {
         perror("tcsetpgrp");
     }
     int status;
+    // check status -- if terminated normally, print message or if suspended
     // make sure process is running
     // negative pid
     // fg_pid = process group, negative to send it to all
@@ -556,6 +557,7 @@ void fg_helper(char *argv[512]) {
     if (waitpid(fg_pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
         perror("waitpid");
     }
+    update_job_jid(list, jid, RUNNING);
     if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // sends back to shell?
         perror("tcsetpgrp");
     }
@@ -563,7 +565,15 @@ void fg_helper(char *argv[512]) {
 
 void bg_helper(char *argv[512]) {
     int jid = argv[1][1];
+    // if jid not valid, throw an error
     int bg_pid = get_job_pid(list, jid);
-    kill(-bg_pid, SIGCONT);
+    // check return val of bg_pid
+    if (bg_pid == -1) {
+        fprintf(stderr, "job not found\n");
+    }
+    else {
+        kill(-bg_pid, SIGCONT);
+        update_job_jid(list, jid, RUNNING);
+    }
     // error check!
 }
