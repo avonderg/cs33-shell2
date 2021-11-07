@@ -335,6 +335,9 @@ int parse(char buffer[1024], char *tokens[512], char *argv[512],
         else if (strcmp(tokens[i], "&") == 0) { // if the elt is an ampersand
             // what do we do here then?
             amp_checked = 1;
+            argv[k] = w_sym[i];
+            k++;
+            i++;
         }
         else {  // otherwise, then add in element to argv
             argv[k] = w_sym[i];
