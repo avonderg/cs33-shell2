@@ -522,7 +522,7 @@ void reap_helper() {
         int signal = WTERMSIG(status);
         printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
         }
-    else if (WIFEXITED(status)) { 
+    else if (WIFEXITED(status) == 0) { 
         int jid = get_job_jid(list, pid);
         remove_job_jid(list, jid);
         int signal = WEXITSTATUS(status);
