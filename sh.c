@@ -426,13 +426,15 @@ int built_in(char *argv[512], char **path) {
        // difference is in the jid u sent to foreground
        // tcset
        fg_helper(argv);
+       return 1;
     }
     else if (strcmp(*path, "bg") == 0) {  // if the command is bg
       bg_helper(argv);
+      return 1;
     }
     else if (strcmp(*path, "jobs") == 0) {  // if the command is jobs
-      printf("test");
       jobs(list);
+      return 1;
     }
     return 0;
 }
