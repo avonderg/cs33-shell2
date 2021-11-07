@@ -45,6 +45,7 @@ int main() {
     list = init_job_list(); // init joblist
     // repl
     while (1) {
+        reap_helper();
 #ifdef PROMPT
         if (printf("33sh> ") < 0) {
             fprintf(stderr, "error: unable to write");
@@ -189,7 +190,7 @@ int main() {
             // }
         }
     amp_checked = 0;
-    reap_helper();
+    // reap_helper();
     }
     return 0;
 }
@@ -509,7 +510,7 @@ void reap_helper() {
     int status;
     int pid;
     while ((pid = waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG)) > 0) {
-        if (WIFSTOPPED(status)) { // if it is true
+    if (WIFSTOPPED(status)) { // if it is true
             int jid = get_job_jid(list, pid);
             update_job_jid(list, jid, STOPPED);
             int signal = WSTOPSIG(status);
