@@ -538,7 +538,7 @@ void reap_helper() {
     }
 }
 void fg_helper(char *argv[512]) {
-    int jid = argv[1][1];
+    int jid = atoi(argv[1][1]);
     int fg_pid = get_job_pid(list, jid);
     pid_t pgrp = getpgrp();
     if (pgrp == -1) {
@@ -564,7 +564,7 @@ void fg_helper(char *argv[512]) {
 }
 
 void bg_helper(char *argv[512]) {
-    int jid = argv[1][1];
+    int jid = atoi(argv[1][1]);
     // if jid not valid, throw an error
     int bg_pid = get_job_pid(list, jid);
     // check return val of bg_pid
