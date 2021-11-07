@@ -430,7 +430,8 @@ int built_in(char *argv[512], char **path) {
     else if (strcmp(*path, "bg") == 0) {  // if the command is bg
       bg_helper(argv);
     }
-    else if (strcmp(*path, "jobs") == 0) {  // if the command is bg
+    else if (strcmp(*path, "jobs") == 0) {  // if the command is jobs
+      printf("test");
       jobs(list);
     }
     return 0;
