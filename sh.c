@@ -132,7 +132,7 @@ int main() {
                     // add to job in parent process bc we don't hav access to pid unless in parent
                     add_jobs(pid, list, &path);
                     int job_pid = get_job_pid(list, jobcount);
-                    printf("[%d] (%d)", jobcount, job_pid);
+                    printf("[%d] (%d)\n", jobcount, job_pid);
                     jobcount++;
                 }
                 else { // if it is a foregound job
