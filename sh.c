@@ -109,7 +109,7 @@ int main() {
                     perror("getpgrp");
                 }
                 if (amp_checked == 0) { // if it is a foreground process
-                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
+                if (tcsetpgrp(pid, pgrp) == -1) { // gives up terminal control
                     perror("tcsetpgrp");
                 }
                 }
@@ -140,13 +140,13 @@ int main() {
                     if (waitpid(pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
                         perror("waitpid");
                     }
-                    if (WIFEXITED(status) == 0) { // if foreground job ended normally
-                        int signal = WEXITSTATUS(status);
-                        int jid = get_job_jid(list, pid);
-                        printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
-                    }
+                    // if (WIFEXITED(status) == 0) { // if foreground job ended normally
+                    //     int signal = WEXITSTATUS(status);
+                    //     int jid = get_job_jid(list, pid);
+                    //     printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
+                    // }
                     // either terminated or stopped
-                    else if (WIFSTOPPED(status) == 1) { // if it suspended early!!
+                    if (WIFSTOPPED(status) == 1) { // if it suspended early!!
                         // add to joblist and leave it
                         add_jobs(pid,list, &path);
                         int jid = get_job_jid(list, pid);
@@ -545,4 +545,5 @@ void bg_helper(char *argv[512]) {
     int jid = argv[1][1];
     int bg_pid = get_job_pid(list, jid);
     kill(-bg_pid, SIGCONT);
+    // error check!
 }
