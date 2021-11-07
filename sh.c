@@ -127,7 +127,7 @@ int main() {
                     perror("execv");
                 }
                 perror("child process could not do execv");
-            } else if (pid > 0) {  // in the parent process
+            }   // in the parent process
                 if (amp_checked == 1) { // if there was an ampersand, this means it is background
                     // add to job in parent process bc we don't hav access to pid unless in parent
                     add_jobs(pid, list, &path);
@@ -176,11 +176,11 @@ int main() {
                     // check if it was suspended using that
                     // call helper again
                 }
-            } else {  // if an error has ocurred
-                perror("error calling function fork()");
-                cleanup_job_list(list);
-                exit(0);
-            }
+            //  else {  // if an error has ocurred
+            //     perror("error calling function fork()");
+            //     cleanup_job_list(list);
+            //     exit(0);
+            // }
         }
     }
     return 0;
@@ -541,6 +541,7 @@ void fg_helper(char *argv[512]) {
         perror("tcsetpgrp");
     }
 }
+
 void bg_helper(char *argv[512]) {
     int jid = argv[1][1];
     int bg_pid = get_job_pid(list, jid);
