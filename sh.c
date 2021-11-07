@@ -45,7 +45,6 @@ int main() {
     list = init_job_list(); // init joblist
     // repl
     while (1) {
-        reap_helper();
 #ifdef PROMPT
         if (printf("33sh> ") < 0) {
             fprintf(stderr, "error: unable to write");
@@ -190,6 +189,7 @@ int main() {
             //     exit(0);
             // }
         }
+    reap_helper();
     }
     return 0;
 }
@@ -502,24 +502,24 @@ void reap_helper() {
     int status;
     int pid;
     while ((pid = waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG)) > 0) {
-        if (WIFSTOPPED(status) == 1) { // if it is true
+        if (WIFSTOPPED(status)) { // if it is true
             int jid = get_job_jid(list, pid);
             update_job_jid(list, jid, STOPPED);
             int signal = WSTOPSIG(status);
             printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);            
         }
-    else if (WIFCONTINUED(status) == 1) { // if it is true
+    else if (WIFCONTINUED(status)) { // if it is true
         int jid = get_job_jid(list, pid);
         update_job_jid(list, jid, RUNNING); // resumed
         printf("[%d] (%d) resumed\n", jid, pid);
         }
-    else if (WIFSIGNALED(status) != 0) { // if it is terminated
+    else if (WIFSIGNALED(status)) { // if it is terminated
         int jid = get_job_jid(list, pid);
         remove_job_jid(list, jid);
         int signal = WTERMSIG(status);
         printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
         }
-    else if (WIFEXITED(status) == 0) { 
+    else if (WIFEXITED(status)) { 
         int jid = get_job_jid(list, pid);
         remove_job_jid(list, jid);
         int signal = WEXITSTATUS(status);
