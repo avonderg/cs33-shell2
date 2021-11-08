@@ -576,9 +576,9 @@ void fg_helper(char *argv[512], char **path) {
         int jid = get_job_jid(list, fg_pid);
         remove_job_jid(list, jid);
     }
-    else {
-        update_job_jid(list, jid, RUNNING);
-    }
+    // else {
+    //     update_job_jid(list, jid, RUNNING);
+    // }
     if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { 
         perror("tcsetpgrp");
     }
