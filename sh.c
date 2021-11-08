@@ -27,7 +27,7 @@ int set_path(char *tokens[512], char **path);
 void add_jobs(pid_t pid, job_list_t *job_list, char **path);
 void reap_helper();
 void bg_helper(char *argv[512]);
-void fg_helper(char *argv[512],  char **path);
+void fg_helper(char *argv[512]);
 int amp_checked = 0;
 job_list_t *list = NULL;
 int jobcount = 1;
@@ -432,7 +432,7 @@ int built_in(char *argv[512], char **path) {
        // parse to get the jid (follows the command
        // difference is in the jid u sent to foreground
        // tcset
-       fg_helper(argv, path);
+       fg_helper(argv);
        return 1;
     }
     else if (strcmp(*path, "bg") == 0) {  // if the command is bg
@@ -541,7 +541,7 @@ void reap_helper() {
         }
     }
 }
-void fg_helper(char *argv[512], char **path) {
+void fg_helper(char *argv[512]) {
     int jid = atoi(&argv[1][1]);
     int fg_pid = get_job_pid(list, jid);
     pid_t pgrp = getpgrp();
@@ -570,7 +570,7 @@ void fg_helper(char *argv[512], char **path) {
         printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
         remove_job_jid(list, jid);
     }
-    else if  (WIFEXITED(status) != 0) { // if foreground job ended normally
+    else if (WIFEXITED(status) != 0) { // if foreground job ended normally
         // int signal = WEXITSTATUS(status);
         remove_job_jid(list, jid);
     }
