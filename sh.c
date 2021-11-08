@@ -127,6 +127,7 @@ int main() {
                     perror("execv");
                 }
                 perror("child process could not do execv");
+                cleanup_job_list(list);
                 exit(1);
                 }   // in the parent process
                 if (amp_checked == 1) { // if there was an ampersand, this means it is background
@@ -193,6 +194,7 @@ int main() {
             // }
         }
     }
+    cleanup_job_list(list);
     return 0;
 }
 
@@ -422,6 +424,7 @@ int built_in(char *argv[512], char **path) {
     } else if (strcmp(*path, "exit") == 0) {  // if the command is exit
         // cleanup_job_list(list);
         exit(0);
+        cleanup_job_list(list);
     }
     else if (strcmp(*path, "fg") == 0) {  // if the command is fg
        // parse to get the jid (follows the command
@@ -558,7 +561,6 @@ void fg_helper(char *argv[512], char **path) {
     if (WIFSTOPPED(status)) { // if it suspended early!!
         add_jobs(fg_pid,list, path);
         jobcount++;
-        int jid = get_job_jid(list, fg_pid);
         update_job_jid(list, jid, STOPPED);
         int signal = WSTOPSIG(status);
         printf("[%d] (%d) suspended by signal %d\n", jid, fg_pid, signal);
@@ -567,18 +569,16 @@ void fg_helper(char *argv[512], char **path) {
         int signal = WTERMSIG(status);
         add_jobs(fg_pid,list, path);
         jobcount++;
-        int jid = get_job_jid(list, fg_pid);
         printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
         remove_job_jid(list, jid);
     }
     else if  (WIFEXITED(status) != 0) { // if foreground job ended normally
         // int signal = WEXITSTATUS(status);
-        int jid = get_job_jid(list, fg_pid);
         remove_job_jid(list, jid);
     }
-    // else {
-    //     update_job_jid(list, jid, RUNNING);
-    // }
+    else {
+        update_job_jid(list, jid, RUNNING);
+    }
     if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { 
         perror("tcsetpgrp");
     }
