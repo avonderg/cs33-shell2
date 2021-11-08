@@ -561,16 +561,12 @@ void fg_helper(char *argv[512], char **path) {
         perror("waitpid");
     }
     if (WIFSTOPPED(status)) { // if it suspended early!!
-        add_jobs(fg_pid,list, path);
-        jobcount++;
         update_job_jid(list, jid, STOPPED);
         int signal = WSTOPSIG(status);
         printf("[%d] (%d) suspended by signal %d\n", jid, fg_pid, signal);
     }
     else if (WIFSIGNALED(status)) { // if it is terminated w signal
         int signal = WTERMSIG(status);
-        add_jobs(fg_pid,list, path);
-        jobcount++;
         printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
         remove_job_jid(list, jid);
     }
