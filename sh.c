@@ -148,11 +148,11 @@ int main() {
                     if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
                         perror("tcsetpgrp");
                     }
-                    // if (WIFEXITED(status) == 0) { // if foreground job ended normally
-                    //     int signal = WEXITSTATUS(status);
-                    //     int jid = get_job_jid(list, pid);
-                    //     printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
-                    // }
+                    if (WIFEXITED(status) != 0) { // if foreground job ended normally
+                        int signal = WEXITSTATUS(status);
+                        int jid = get_job_jid(list, pid);
+                         remove_job_jid(list, jid);
+                    }
                     // either terminated or stopped
                     if (WIFSTOPPED(status)) { // if it suspended early!!
                         // add to joblist and leave it
@@ -569,6 +569,11 @@ void fg_helper(char *argv[512], char **path) {
         jobcount++;
         int jid = get_job_jid(list, fg_pid);
         printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
+        remove_job_jid(list, jid);
+    }
+    else if  (WIFEXITED(status) != 0) { // if foreground job ended normally
+        int signal = WEXITSTATUS(status);
+        int jid = get_job_jid(list, fg_pid);
         remove_job_jid(list, jid);
     }
     else {
