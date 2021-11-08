@@ -70,8 +70,10 @@ int main() {
         // check argv array (case where there are no tokens)
         if (to_read == -1) {
             perror("error: read");
+            cleanup_job_list(list);
             return 1;
         } else if (to_read == 0) {  // restart program
+            cleanup_job_list(list);
             return 0;               // 0 means end of file
         }
         buf[to_read] =
