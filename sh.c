@@ -1,15 +1,15 @@
+#include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <time.h>
-#include <signal.h>
-#include <errno.h>
-#include "jobs.h"
 #include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
+#include "jobs.h"
 
 // function and global variable declarations
 void parse_helper(char buffer[1024], char *tokens[512], char *argv[512],
@@ -43,10 +43,10 @@ int main() {
     signal(SIGINT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);
-    list = init_job_list(); // init joblist
+    list = init_job_list();  // init joblist
     // entering repl
     while (1) {
-        reap_helper(); // reap all background jobs
+        reap_helper();  // reap all background jobs
 #ifdef PROMPT
         if (printf("33sh> ") < 0) {
             fprintf(stderr, "error: unable to write");
@@ -63,7 +63,8 @@ int main() {
         int fd = STDIN_FILENO;
         size_t count = 1024;
         ssize_t to_read;
-        amp_checked = 0; // reset global amp_checked variable , which checks for background jobs
+        amp_checked = 0;  // reset global amp_checked variable , which checks
+                          // for background jobs
         // reading system call to get user input
         to_read = read(fd, buf, count);
         if (to_read == -1) {
@@ -72,7 +73,7 @@ int main() {
             return 1;
         } else if (to_read == 0) {  // restart program
             cleanup_job_list(list);
-            return 0;               // 0 -> EOF
+            return 0;  // 0 -> EOF
         }
         buf[to_read] =
             '\0';  // since the read function does not null-terminate the buffer
@@ -100,18 +101,21 @@ int main() {
         int built_ins = built_in(argv, &path);
         if (built_ins == 0) {
             pid_t pid;
-            if ((pid = fork()) == 0) {  // enters child process
-                if (setpgid(pid, pid) == -1) { // sets pgid of child process to the child process' pid
+            if ((pid = fork()) == 0) {          // enters child process
+                if (setpgid(pid, pid) == -1) {  // sets pgid of child process to
+                                                // the child process' pid
                     perror("setpgid");
                 }
-                pid_t pgrp = getpgrp(); // gets the process group ID of the current process
-                if (pgrp == -1) { 
+                pid_t pgrp = getpgrp();  // gets the process group ID of the
+                                         // current process
+                if (pgrp == -1) {
                     perror("getpgrp");
                 }
-                if (amp_checked == 0) { // if it is a foreground process
-                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control to pgrp
-                    perror("tcsetpgrp");
-                }
+                if (amp_checked == 0) {  // if it is a foreground process
+                    if (tcsetpgrp(STDIN_FILENO, pgrp) ==
+                        -1) {  // gives up terminal control to pgrp
+                        perror("tcsetpgrp");
+                    }
                 }
                 // signal handling in child process
                 signal(SIGINT, SIG_DFL);
@@ -122,65 +126,76 @@ int main() {
                 if (redirects == -1) {  // if an error has occured
                     return 1;
                 }
-                int exec = execv(path, argv); // calls execv
+                int exec = execv(path, argv);  // calls execv
                 if (exec == -1) {
                     perror("execv");
                 }
                 perror("child process could not do execv");
                 cleanup_job_list(list);
                 exit(1);
-                }   
-                // now entering the parent process
-                if (amp_checked == 1) { // if there was an ampersand, which means it is in the background
-                    // note: we add the job in this parent process since we don't have access to the pid unless it is in parent
-                    add_jobs(pid, list, &path);
-                    int job_pid = get_job_pid(list, jobcount);
-                    printf("[%d] (%d)\n", jobcount, job_pid);
+            }
+            // now entering the parent process
+            if (amp_checked == 1) {  // if there was an ampersand, which means
+                                     // it is in the background
+                // note: we add the job in this parent process since we don't
+                // have access to the pid unless it is in parent
+                add_jobs(pid, list, &path);
+                int job_pid = get_job_pid(list, jobcount);
+                printf("[%d] (%d)\n", jobcount, job_pid);
+                jobcount++;
+            } else {  // otherwise, if it is a foregound job
+                int status;
+                if (waitpid(pid, &status, WUNTRACED) ==
+                    -1) {  // check if process wasn't finished yet / not added
+                           // to jobs list
+                    perror("waitpid");
+                }
+                pid_t pgrp = getpgrp();
+                if (pgrp == -1) {
+                    perror("getpgrp");
+                }
+                if (tcsetpgrp(STDIN_FILENO, pgrp) ==
+                    -1) {  // gives up terminal control
+                    perror("tcsetpgrp");
+                }
+                if (WIFEXITED(status) !=
+                    0) {  // if foreground job ended normally
+                    int jid = get_job_jid(list, pid);
+                    if (remove_job_jid(list, jid) ==
+                        -1) {  // removes it from joblist
+                        fprintf(stderr, "could not remove job jid\n");
+                    }
+                }
+                if (WIFSTOPPED(
+                        status)) {  // if the foreground job suspended early
+                    add_jobs(pid, list, &path);  // add job to joblist
                     jobcount++;
-                }
-                else { // otherwise, if it is a foregound job
-                    int status;
-                    if (waitpid(pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
-                        perror("waitpid");
+                    int jid = get_job_jid(list, pid);
+                    if (update_job_jid(list, jid, STOPPED) ==
+                        -1) {  // update job as STOPPED, since it is suspended
+                        fprintf(stderr, "could not update job jid\n");
                     }
-                    pid_t pgrp = getpgrp();
-                    if (pgrp == -1) {
-                        perror("getpgrp");
-                    }
-                    if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control
-                        perror("tcsetpgrp");
-                    }
-                    if (WIFEXITED(status) != 0) { // if foreground job ended normally
-                        int jid = get_job_jid(list, pid);
-                        if (remove_job_jid(list, jid) == -1) { // removes it from joblist
-                            fprintf(stderr, "could not remove job jid\n");
-                        }
-                    }
-                    if (WIFSTOPPED(status)) { // if the foreground job suspended early
-                        add_jobs(pid,list, &path); // add job to joblist
-                        jobcount++;
-                        int jid = get_job_jid(list, pid);
-                        if (update_job_jid(list, jid, STOPPED) == -1) { // update job as STOPPED, since it is suspended
-                            fprintf(stderr, "could not update job jid\n");
-                        }
-                        int signal = WSTOPSIG(status);
-                        printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
-                    }
-                    else if (WIFSIGNALED(status)) { // if the fg job is terminated w/ a signal
-                        int signal = WTERMSIG(status);
-                        add_jobs(pid,list, &path); // add to joblist briefly to be able to access jid
-                        jobcount++;
-                        int jid = get_job_jid(list, pid);
-                        printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
-                        if (remove_job_jid(list, jid) == -1) { // remove it again
-                            fprintf(stderr, "could not remove job jid\n");
-                        }
+                    int signal = WSTOPSIG(status);
+                    printf("[%d] (%d) suspended by signal %d\n", jid, pid,
+                           signal);
+                } else if (WIFSIGNALED(status)) {  // if the fg job is
+                                                   // terminated w/ a signal
+                    int signal = WTERMSIG(status);
+                    add_jobs(pid, list, &path);  // add to joblist briefly to be
+                                                 // able to access jid
+                    jobcount++;
+                    int jid = get_job_jid(list, pid);
+                    printf("[%d] (%d) terminated by signal %d\n", jid, pid,
+                           signal);
+                    if (remove_job_jid(list, jid) == -1) {  // remove it again
+                        fprintf(stderr, "could not remove job jid\n");
                     }
                 }
+            }
         }
     }
     cleanup_job_list(list);
-    return 0; // repl finished
+    return 0;  // repl finished
 }
 
 /**
@@ -320,12 +335,11 @@ int parse(char buffer[1024], char *tokens[512], char *argv[512],
             // after error checking is complete
             *output_file = tokens[i + 1];
             i += 2;
-        }
-        else if (strcmp(tokens[i], "&") == 0) { // if the current elt is an ampersand-> background job
-            amp_checked = 1; // mark global var as checked
+        } else if (strcmp(tokens[i], "&") ==
+                   0) {  // if the current elt is an ampersand-> background job
+            amp_checked = 1;  // mark global var as checked
             i++;
-        }
-        else {  // otherwise, then add in element to argv
+        } else {  // otherwise, then add in element to argv
             argv[k] = w_sym[i];
             k++;
             i++;
@@ -407,18 +421,15 @@ int built_in(char *argv[512], char **path) {
         // cleanup_job_list(list);
         cleanup_job_list(list);
         exit(0);
-    }
-    else if (strcmp(*path, "fg") == 0) {  // if the command is fg
-       fg_helper(argv); // calls a helper to handle it
-       return 1;
-    }
-    else if (strcmp(*path, "bg") == 0) {  // if the command is bg
-      bg_helper(argv); // calls a helper to handle it
-      return 1;
-    }
-    else if (strcmp(*path, "jobs") == 0) {  // if the command is jobs
-      jobs(list);
-      return 1;
+    } else if (strcmp(*path, "fg") == 0) {  // if the command is fg
+        fg_helper(argv);                    // calls a helper to handle it
+        return 1;
+    } else if (strcmp(*path, "bg") == 0) {  // if the command is bg
+        bg_helper(argv);                    // calls a helper to handle it
+        return 1;
+    } else if (strcmp(*path, "jobs") == 0) {  // if the command is jobs
+        jobs(list);
+        return 1;
     }
     return 0;
 }
@@ -483,8 +494,8 @@ int file_redirect(const char **input_file, const char **output_file,
 }
 
 /**
- * Helper function to handle adding a job to the joblist. Passes in appropriate inputs
- * to add_job() function from jobs.c
+ * Helper function to handle adding a job to the joblist. Passes in appropriate
+ * inputs to add_job() function from jobs.c
  *
  * Parameters:
  * - pid: process ID of the job
@@ -492,116 +503,124 @@ int file_redirect(const char **input_file, const char **output_file,
  * - path: pointer to the filepath, which contains the command to be run
  * **/
 void add_jobs(pid_t pid, job_list_t *job_list, char **path) {
-    if (add_job(job_list, jobcount, pid, RUNNING, *path) == -1) { // add current job to job list
-            fprintf(stderr, "could not add job\n");
-        }
+    if (add_job(job_list, jobcount, pid, RUNNING, *path) ==
+        -1) {  // add current job to job list
+        fprintf(stderr, "could not add job\n");
+    }
 }
 
-
 /**
- * Helper function to handle reaping zombie background jobs that have already terminated. Tracks
- * background jobs appropriately.
+ * Helper function to handle reaping zombie background jobs that have already
+ * terminated. Tracks background jobs appropriately.
  * **/
 void reap_helper() {
     int status;
     int pid;
-    while ((pid = waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG)) > 0) { //suspends execution of current process
-    if (WIFSTOPPED(status)) { // if job was suspended
-        int jid = get_job_jid(list, pid);
-        if (update_job_jid(list, jid, STOPPED) == -1) { // update to be STOPPED
-            fprintf(stderr, "could not update job jid\n");
-        }
-        int signal = WSTOPSIG(status);
-        printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);            
-        }
-    else if (WIFCONTINUED(status)) { // if job has been resumed
-        int jid = get_job_jid(list, pid);
-        if (update_job_jid(list, jid, RUNNING) == -1) { // update to be RUNNING
-            fprintf(stderr, "could not update job jid\n");
-        }
-        printf("[%d] (%d) resumed\n", jid, pid);
-        }
-    else if (WIFSIGNALED(status)) { // if it is terminated
-        int jid = get_job_jid(list, pid);
-        if (remove_job_jid(list, jid) == -1) { // remove from joblist
-            fprintf(stderr, "could not remove job jid\n");
-        }
-        int signal = WTERMSIG(status);
-        printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
-        }
-    else if (WIFEXITED(status) != 0) {  // if it exited normally
-        int jid = get_job_jid(list, pid);
-        if (remove_job_jid(list, jid) == -1) { // remove job
-            fprintf(stderr, "could not remove job jid\n");
-        }
-        int signal = WEXITSTATUS(status);
-        printf("[%d] (%d) terminated with exit status %d\n", jid, pid, signal);
+    while ((pid = waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG)) >
+           0) {                    // suspends execution of current process
+        if (WIFSTOPPED(status)) {  // if job was suspended
+            int jid = get_job_jid(list, pid);
+            if (update_job_jid(list, jid, STOPPED) ==
+                -1) {  // update to be STOPPED
+                fprintf(stderr, "could not update job jid\n");
+            }
+            int signal = WSTOPSIG(status);
+            printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
+        } else if (WIFCONTINUED(status)) {  // if job has been resumed
+            int jid = get_job_jid(list, pid);
+            if (update_job_jid(list, jid, RUNNING) ==
+                -1) {  // update to be RUNNING
+                fprintf(stderr, "could not update job jid\n");
+            }
+            printf("[%d] (%d) resumed\n", jid, pid);
+        } else if (WIFSIGNALED(status)) {  // if it is terminated
+            int jid = get_job_jid(list, pid);
+            if (remove_job_jid(list, jid) == -1) {  // remove from joblist
+                fprintf(stderr, "could not remove job jid\n");
+            }
+            int signal = WTERMSIG(status);
+            printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
+        } else if (WIFEXITED(status) != 0) {  // if it exited normally
+            int jid = get_job_jid(list, pid);
+            if (remove_job_jid(list, jid) == -1) {  // remove job
+                fprintf(stderr, "could not remove job jid\n");
+            }
+            int signal = WEXITSTATUS(status);
+            printf("[%d] (%d) terminated with exit status %d\n", jid, pid,
+                   signal);
         }
     }
 }
 
 /**
- * Helper function to handle the 'fg' command. Restarts a stopped job in the foreground, and/or
- * moves a background job into the foreground.
+ * Helper function to handle the 'fg' command. Restarts a stopped job in the
+ * foreground, and/or moves a background job into the foreground.
  *
  * Parameter:
  * - argv: a pointer to the first element in the command line
  *            arguments array
  * **/
 void fg_helper(char *argv[512]) {
-    int jid = atoi(&argv[1][1]); // parses to get the jid, and calls atoi() to convert into an int
-    int fg_pid = get_job_pid(list, jid); // gets the job pid
-    if (fg_pid == -1) { // error checking
+    int jid = atoi(&argv[1][1]);  // parses to get the jid, and calls atoi() to
+                                  // convert into an int
+    int fg_pid = get_job_pid(list, jid);  // gets the job pid
+    if (fg_pid == -1) {                   // error checking
         fprintf(stderr, "job not found\n");
-    }
-    else {
-    pid_t pgrp = getpgrp();
-    if (pgrp == -1) {
-        perror("getpgrp");
-    }
-    if (tcsetpgrp(STDIN_FILENO, fg_pid) == -1) { // gives up terminal control
-        perror("tcsetpgrp");
-    }
-    int status;
-    if (kill(-fg_pid, SIGCONT) == -1) { // sends in negative pid so it is sent to all processes
+    } else {
+        pid_t pgrp = getpgrp();
+        if (pgrp == -1) {
+            perror("getpgrp");
+        }
+        if (tcsetpgrp(STDIN_FILENO, fg_pid) ==
+            -1) {  // gives up terminal control
+            perror("tcsetpgrp");
+        }
+        int status;
+        if (kill(-fg_pid, SIGCONT) ==
+            -1) {  // sends in negative pid so it is sent to all processes
             perror("kill");
         }
-    if (waitpid(fg_pid, &status, WUNTRACED) == -1) { // check if process wasn't finished yet / not added to jobs list 
-        perror("waitpid");
-    }
-    // check status -- if terminated normally, print message or if suspended
-    if (WIFSTOPPED(status)) { // if it suspended early
-        if (update_job_jid(list, jid, STOPPED) == -1) { // then, update the process state
-            fprintf(stderr, "could not update job jid\n");
+        if (waitpid(fg_pid, &status, WUNTRACED) ==
+            -1) {  // check if process wasn't finished yet / not added to jobs
+                   // list
+            perror("waitpid");
         }
-        int signal = WSTOPSIG(status);
-        printf("[%d] (%d) suspended by signal %d\n", jid, fg_pid, signal);
-    }
-    else if (WIFSIGNALED(status)) { // if it is terminated w signal
-        int signal = WTERMSIG(status);
-        printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
-        if (remove_job_jid(list, jid) == -1) { // then, remove the job
-            fprintf(stderr, "could not remove job jid\n");
+        // check status -- if terminated normally, print message or if suspended
+        if (WIFSTOPPED(status)) {  // if it suspended early
+            if (update_job_jid(list, jid, STOPPED) ==
+                -1) {  // then, update the process state
+                fprintf(stderr, "could not update job jid\n");
+            }
+            int signal = WSTOPSIG(status);
+            printf("[%d] (%d) suspended by signal %d\n", jid, fg_pid, signal);
+        } else if (WIFSIGNALED(status)) {  // if it is terminated w signal
+            int signal = WTERMSIG(status);
+            printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
+            if (remove_job_jid(list, jid) == -1) {  // then, remove the job
+                fprintf(stderr, "could not remove job jid\n");
+            }
+        } else if (WIFEXITED(status) !=
+                   0) {  // if foreground job ended normally
+            if (remove_job_jid(list, jid) ==
+                -1) {  // then, remove the job from the joblist
+                fprintf(stderr, "could not remove job jid\n");
+            }
+        } else {
+            if (update_job_jid(list, jid, RUNNING) ==
+                -1) {  // otherwise, update the process state to be running
+                fprintf(stderr, "could not update job jid\n");
+            }
         }
-    }
-    else if (WIFEXITED(status) != 0) { // if foreground job ended normally
-        if (remove_job_jid(list, jid) == -1) { // then, remove the job from the joblist
-            fprintf(stderr, "could not remove job jid\n");
+        if (tcsetpgrp(STDIN_FILENO, pgrp) ==
+            -1) {  // sends back terminal control
+            perror("tcsetpgrp");
         }
-    }
-    else {
-        if (update_job_jid(list, jid, RUNNING) == -1) { // otherwise, update the process state to be running
-            fprintf(stderr, "could not update job jid\n");
-        }
-    }
-    if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // sends back terminal control
-        perror("tcsetpgrp");
-    }
     }
 }
 
 /**
- * Helper function to handle the 'bg' command. Restarts a stopped job in the background.
+ * Helper function to handle the 'bg' command. Restarts a stopped job in the
+ * background.
  *
  * Parameter:
  * - argv: a pointer to the first element in the command line
@@ -613,12 +632,12 @@ void bg_helper(char *argv[512]) {
     // checks return val of bg_pid-- i.e., if jid is not valid, throws an error
     if (bg_pid == -1) {
         fprintf(stderr, "job not found\n");
-    }
-    else {
-        if (kill(-bg_pid, SIGCONT) == -1) { // otherwise, restart job
+    } else {
+        if (kill(-bg_pid, SIGCONT) == -1) {  // otherwise, restart job
             perror("kill");
         }
-        if (update_job_jid(list, jid, RUNNING) == -1) { // updates process state
+        if (update_job_jid(list, jid, RUNNING) ==
+            -1) {  // updates process state
             fprintf(stderr, "could not update job jid\n");
         }
     }
