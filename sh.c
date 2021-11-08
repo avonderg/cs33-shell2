@@ -545,7 +545,7 @@ void reap_helper() {
 void fg_helper(char *argv[512]) {
     int jid = atoi(&argv[1][1]);
     int fg_pid = get_job_pid(list, jid);
-    if (get_job_pid == -1) {
+    if (fg_pid == -1) {
         fprintf(stderr, "job not found\n");
     }
     else {
