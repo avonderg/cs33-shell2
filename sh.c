@@ -423,8 +423,8 @@ int built_in(char *argv[512], char **path) {
         return 1;
     } else if (strcmp(*path, "exit") == 0) {  // if the command is exit
         // cleanup_job_list(list);
-        exit(0);
         cleanup_job_list(list);
+        exit(0);
     }
     else if (strcmp(*path, "fg") == 0) {  // if the command is fg
        // parse to get the jid (follows the command
