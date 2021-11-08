@@ -100,15 +100,15 @@ int main() {
         if (built_ins == 0) {
             pid_t pid;
             if ((pid = fork()) == 0) {  // enters child process
-                if (setpgid(pid, pid) == -1) {
+                if (setpgid(pid, pid) == -1) { // sets pgid of child process to the child process' pid
                     perror("setpgid");
                 }
                 pid_t pgrp = getpgrp();
-                if (pgrp == -1) {
+                if (pgrp == -1) { 
                     perror("getpgrp");
                 }
                 if (amp_checked == 0) { // if it is a foreground process
-                if (tcsetpgrp(pid, pgrp) == -1) { // gives up terminal control
+                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control to pgrp
                     perror("tcsetpgrp");
                 }
                 }
@@ -574,7 +574,7 @@ void fg_helper(char *argv[512], char **path) {
     else {
         update_job_jid(list, jid, RUNNING);
     }
-    if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // sends back to shell?
+    if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { 
         perror("tcsetpgrp");
     }
 }
