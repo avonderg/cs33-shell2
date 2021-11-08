@@ -571,7 +571,9 @@ void fg_helper(char *argv[512], char **path) {
         printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
         remove_job_jid(list, jid);
     }
-    update_job_jid(list, jid, RUNNING);
+    else {
+        update_job_jid(list, jid, RUNNING);
+    }
     if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // sends back to shell?
         perror("tcsetpgrp");
     }
