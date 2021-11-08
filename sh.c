@@ -149,7 +149,7 @@ int main() {
                         perror("tcsetpgrp");
                     }
                     if (WIFEXITED(status) != 0) { // if foreground job ended normally
-                        int signal = WEXITSTATUS(status);
+                        // int signal = WEXITSTATUS(status);
                         int jid = get_job_jid(list, pid);
                          remove_job_jid(list, jid);
                     }
@@ -572,7 +572,7 @@ void fg_helper(char *argv[512], char **path) {
         remove_job_jid(list, jid);
     }
     else if  (WIFEXITED(status) != 0) { // if foreground job ended normally
-        int signal = WEXITSTATUS(status);
+        // int signal = WEXITSTATUS(status);
         int jid = get_job_jid(list, fg_pid);
         remove_job_jid(list, jid);
     }
