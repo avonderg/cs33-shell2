@@ -161,20 +161,14 @@ int main() {
                 if (WIFEXITED(status) !=
                     0) {  // if foreground job ended normally
                     int jid = get_job_jid(list, pid);
-                    if (remove_job_jid(list, jid) ==
-                        -1) {  // removes it from joblist
-                        fprintf(stderr, "could not remove job jid\n");
-                    }
+                    remove_job_jid(list, jid);
                 }
                 if (WIFSTOPPED(
                         status)) {  // if the foreground job suspended early
                     add_jobs(pid, list, &path);  // add job to joblist
                     jobcount++;
                     int jid = get_job_jid(list, pid);
-                    if (update_job_jid(list, jid, STOPPED) ==
-                        -1) {  // update job as STOPPED, since it is suspended
-                        fprintf(stderr, "could not update job jid\n");
-                    }
+                    update_job_jid(list, jid, STOPPED);
                     int signal = WSTOPSIG(status);
                     printf("[%d] (%d) suspended by signal %d\n", jid, pid,
                            signal);
@@ -187,9 +181,7 @@ int main() {
                     int jid = get_job_jid(list, pid);
                     printf("[%d] (%d) terminated by signal %d\n", jid, pid,
                            signal);
-                    if (remove_job_jid(list, jid) == -1) {  // remove it again
-                        fprintf(stderr, "could not remove job jid\n");
-                    }
+                    remove_job_jid(list, jid);
                 }
             }
         }
@@ -503,10 +495,7 @@ int file_redirect(const char **input_file, const char **output_file,
  * - path: pointer to the filepath, which contains the command to be run
  * **/
 void add_jobs(pid_t pid, job_list_t *job_list, char **path) {
-    if (add_job(job_list, jobcount, pid, RUNNING, *path) ==
-        -1) {  // add current job to job list
-        fprintf(stderr, "could not add job\n");
-    }
+    add_job(job_list, jobcount, pid, RUNNING, *path); // add current job to joblist
 }
 
 /**
@@ -520,31 +509,21 @@ void reap_helper() {
            0) {                    // suspends execution of current process
         if (WIFSTOPPED(status)) {  // if job was suspended
             int jid = get_job_jid(list, pid);
-            if (update_job_jid(list, jid, STOPPED) ==
-                -1) {  // update to be STOPPED
-                fprintf(stderr, "could not update job jid\n");
-            }
+            update_job_jid(list, jid, STOPPED);
             int signal = WSTOPSIG(status);
             printf("[%d] (%d) suspended by signal %d\n", jid, pid, signal);
         } else if (WIFCONTINUED(status)) {  // if job has been resumed
             int jid = get_job_jid(list, pid);
-            if (update_job_jid(list, jid, RUNNING) ==
-                -1) {  // update to be RUNNING
-                fprintf(stderr, "could not update job jid\n");
-            }
+            update_job_jid(list, jid, RUNNING);
             printf("[%d] (%d) resumed\n", jid, pid);
         } else if (WIFSIGNALED(status)) {  // if it is terminated
             int jid = get_job_jid(list, pid);
-            if (remove_job_jid(list, jid) == -1) {  // remove from joblist
-                fprintf(stderr, "could not remove job jid\n");
-            }
+            remove_job_jid(list, jid);
             int signal = WTERMSIG(status);
             printf("[%d] (%d) terminated by signal %d\n", jid, pid, signal);
         } else if (WIFEXITED(status) != 0) {  // if it exited normally
             int jid = get_job_jid(list, pid);
-            if (remove_job_jid(list, jid) == -1) {  // remove job
-                fprintf(stderr, "could not remove job jid\n");
-            }
+            remove_job_jid(list, jid);
             int signal = WEXITSTATUS(status);
             printf("[%d] (%d) terminated with exit status %d\n", jid, pid,
                    signal);
@@ -587,29 +566,18 @@ void fg_helper(char *argv[512]) {
         }
         // check status -- if terminated normally, print message or if suspended
         if (WIFSTOPPED(status)) {  // if it suspended early
-            if (update_job_jid(list, jid, STOPPED) ==
-                -1) {  // then, update the process state
-                fprintf(stderr, "could not update job jid\n");
-            }
+            update_job_jid(list, jid, STOPPED);
             int signal = WSTOPSIG(status);
             printf("[%d] (%d) suspended by signal %d\n", jid, fg_pid, signal);
         } else if (WIFSIGNALED(status)) {  // if it is terminated w signal
             int signal = WTERMSIG(status);
             printf("[%d] (%d) terminated by signal %d\n", jid, fg_pid, signal);
-            if (remove_job_jid(list, jid) == -1) {  // then, remove the job
-                fprintf(stderr, "could not remove job jid\n");
-            }
+            remove_job_jid(list, jid); // then, remove the job
         } else if (WIFEXITED(status) !=
                    0) {  // if foreground job ended normally
-            if (remove_job_jid(list, jid) ==
-                -1) {  // then, remove the job from the joblist
-                fprintf(stderr, "could not remove job jid\n");
-            }
+            remove_job_jid(list, jid);
         } else {
-            if (update_job_jid(list, jid, RUNNING) ==
-                -1) {  // otherwise, update the process state to be running
-                fprintf(stderr, "could not update job jid\n");
-            }
+            update_job_jid(list, jid, RUNNING); // otherwise, update the process state to be running
         }
         if (tcsetpgrp(STDIN_FILENO, pgrp) ==
             -1) {  // sends back terminal control
@@ -636,9 +604,6 @@ void bg_helper(char *argv[512]) {
         if (kill(-bg_pid, SIGCONT) == -1) {  // otherwise, restart job
             perror("kill");
         }
-        if (update_job_jid(list, jid, RUNNING) ==
-            -1) {  // updates process state
-            fprintf(stderr, "could not update job jid\n");
-        }
+        update_job_jid(list, jid, RUNNING); // updates process state
     }
 }
