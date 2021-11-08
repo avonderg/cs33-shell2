@@ -107,11 +107,11 @@ int main() {
                 if (pgrp == -1) { 
                     perror("getpgrp");
                 }
-                if (amp_checked == 0) { // if it is a foreground process
-                if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control to pgrp
-                    perror("tcsetpgrp");
-                }
-                }
+                // if (amp_checked == 0) { // if it is a foreground process
+                // if (tcsetpgrp(STDIN_FILENO, pgrp) == -1) { // gives up terminal control to pgrp
+                //     perror("tcsetpgrp");
+                // }
+                // }
                 // signal handling in child process
                 signal(SIGINT, SIG_DFL);
                 signal(SIGTSTP, SIG_DFL);
